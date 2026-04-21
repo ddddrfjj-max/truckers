@@ -11,12 +11,21 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api');
 
-  // CORS
+  // CORS — allow localhost + any URLs listed in FRONTEND_URL (comma-separated)
+  const allowedOrigins = [
+    'http://localhost:3000',
+    ...(process.env.FRONTEND_URL
+      ? process.env.FRONTEND_URL.split(',').map((u) => u.trim())
+      : []),
+  ];
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-    ],
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+      }
+    },
     credentials: true,
   });
 

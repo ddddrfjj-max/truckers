@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+apps/web
+apps/api/node_modules
+apps/api/dist
+apps/api/uploads
+apps/api/prisma/migrations/dev
+*.log
+.env
+.env.*
+.DS_Store
+.turbo
+coverage
