@@ -14,6 +14,7 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { AuditService } from '../audit/audit.service';
 import { RegisterDto } from './dto/register.dto';
@@ -31,6 +32,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new account' })
   async register(@Body() dto: RegisterDto, @Request() req) {
     const result = await this.authService.register(dto);
@@ -43,6 +45,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
   @UseGuards(LocalAuthGuard)
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiBody({ type: LoginDto })
@@ -56,6 +59,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
   @UseGuards(JwtRefreshGuard)
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(@Request() req) {

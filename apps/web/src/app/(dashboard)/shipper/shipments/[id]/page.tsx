@@ -256,7 +256,7 @@ export default function ShipmentDetailPage() {
                 <div className="grid grid-cols-3 gap-1.5">
                   {shipment.images.map((img: any) => (
                     <div key={img.id} className="relative group aspect-square rounded-md overflow-hidden border border-gray-200">
-                      <img src={`http://localhost:3002${img.url}`} alt="" className="w-full h-full object-cover" />
+                      <img src={img.url} alt="" className="w-full h-full object-cover" />
                       {canCancel && (
                         <button
                           type="button"

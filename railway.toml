@@ -3,7 +3,12 @@ dockerfilePath = "apps/api/Dockerfile"
 dockerContext = "."
 
 [deploy]
-healthcheckPath = "/api"
-healthcheckTimeout = 60
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+
+# Persistent volume for uploaded documents.
+# In the Railway dashboard: add a Volume mounted at /app/apps/api/uploads
+# and set UPLOAD_DIR=/app/apps/api/uploads in the service environment.
+# For production at scale, migrate to S3/Cloudflare R2 (see .env.example).

@@ -8,6 +8,15 @@ import { DocumentsService } from './documents.service';
 import { DocumentsController } from './documents.controller';
 import * as fs from 'fs';
 
+const ALLOWED_EXTENSIONS = /\.(pdf|jpg|jpeg|png|webp)$/i;
+const ALLOWED_MIMETYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+]);
+
 @Module({
   imports: [
     MulterModule.registerAsync({
@@ -19,15 +28,19 @@ import * as fs from 'fs';
           storage: diskStorage({
             destination: uploadDir,
             filename: (req, file, cb) => {
-              cb(null, `${uuidv4()}${extname(file.originalname)}`);
+              cb(null, `${uuidv4()}${extname(file.originalname).toLowerCase()}`);
             },
           }),
-          limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+          limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
           fileFilter: (req, file, cb) => {
-            const allowed = /pdf|jpg|jpeg|png|webp/;
             const ext = extname(file.originalname).toLowerCase();
-            if (allowed.test(ext)) cb(null, true);
-            else cb(new Error('Only PDF and image files allowed'), false);
+            const mimeOk = ALLOWED_MIMETYPES.has(file.mimetype);
+            const extOk = ALLOWED_EXTENSIONS.test(ext);
+            if (mimeOk && extOk) {
+              cb(null, true);
+            } else {
+              cb(new Error('Only PDF and image files (JPG, PNG, WEBP) are allowed'), false);
+            }
           },
         };
       },

@@ -22,10 +22,11 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
     return [
       {
-        source: '/api/v1/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/:path*`,
+        source: '/uploads/:path*',
+        destination: `${apiBase}/uploads/:path*`,
       },
     ];
   },

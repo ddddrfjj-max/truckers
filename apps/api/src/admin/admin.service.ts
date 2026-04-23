@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserStatus, DocumentStatus } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { SHIPPER_WITH_PROFILE, DRIVER_WITH_PROFILE } from '../common/prisma-selects';
 
 @Injectable()
@@ -84,7 +85,14 @@ export class AdminService {
     return { data, total, page, limit };
   }
 
-  async updateUserStatus(userId: string, status: UserStatus, adminNotes?: string) {
+  async updateUserStatus(userId: string, status: UserStatus, callerRole: string, adminNotes?: string) {
+    const target = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    // Nobody can touch a DEVELOPER account
+    if (target?.role === 'DEVELOPER') throw new ForbiddenException('Developer accounts cannot be modified');
+    // Only DEVELOPER can suspend/activate ADMIN accounts
+    if (target?.role === 'ADMIN' && callerRole !== 'DEVELOPER') {
+      throw new ForbiddenException('Only a developer can modify admin accounts');
+    }
     const result = await this.prisma.user.update({
       where: { id: userId },
       data: { status },
@@ -259,6 +267,49 @@ export class AdminService {
 
   async getContactUnreadCount() {
     return this.prisma.contactMessage.count({ where: { read: false } });
+  }
+
+  async deleteUser(userId: string, callerRole: string) {
+    if (callerRole !== 'DEVELOPER') throw new ForbiddenException('Only developers can delete accounts');
+    const target = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!target) throw new ForbiddenException('User not found');
+    if (target.role === 'DEVELOPER') throw new ForbiddenException('Developer accounts cannot be deleted');
+    return this.prisma.user.delete({ where: { id: userId }, select: { id: true, email: true, role: true } });
+  }
+
+  async setUserRole(userId: string, role: string, callerRole: string) {
+    if (callerRole !== 'DEVELOPER') throw new ForbiddenException('Only developers can change roles');
+    const target = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!target) throw new ForbiddenException('User not found');
+    if (target.role === 'DEVELOPER') throw new ForbiddenException('Developer accounts cannot be modified');
+    if (role === 'DEVELOPER') throw new ForbiddenException('Cannot assign developer role');
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role: role as any },
+      select: { id: true, email: true, role: true, status: true, profile: true },
+    });
+  }
+
+  async createAdminAccount(
+    data: { email: string; password: string; firstName: string; lastName: string },
+    callerRole: string,
+  ) {
+    if (callerRole !== 'DEVELOPER') throw new ForbiddenException('Only developers can create admin accounts');
+    const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
+    if (existing) throw new ConflictException('Email already registered');
+
+    const passwordHash = await bcrypt.hash(data.password, 12);
+    return this.prisma.user.create({
+      data: {
+        email: data.email,
+        passwordHash,
+        role: 'ADMIN',
+        emailVerified: true,
+        profile: { create: { firstName: data.firstName, lastName: data.lastName } },
+      },
+      select: { id: true, email: true, role: true, status: true, profile: true },
+    });
   }
 
   async getAuditLogs(query: {

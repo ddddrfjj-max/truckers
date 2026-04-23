@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
+  Delete,
   Body,
   Param,
   Query,
@@ -45,13 +47,27 @@ export class AdminController {
   async updateUserStatus(
     @Param('id') id: string,
     @Body() body: { status: UserStatus; notes?: string },
-    @CurrentUser('sub') adminId: string,
+    @CurrentUser() caller: any,
     @Request() req,
   ) {
-    const result = await this.adminService.updateUserStatus(id, body.status, body.notes);
-    await this.audit.log('ADMIN.USER_STATUS_UPDATED', 'User', { userId: adminId, ip: req.ip, userAgent: req.headers['user-agent'] }, {
+    const result = await this.adminService.updateUserStatus(id, body.status, caller.role, body.notes);
+    await this.audit.log('ADMIN.USER_STATUS_UPDATED', 'User', { userId: caller.sub, ip: req.ip, userAgent: req.headers['user-agent'] }, {
       entityId: id,
       after: { status: body.status, notes: body.notes },
+    });
+    return result;
+  }
+
+  @Delete('users/:id')
+  @ApiOperation({ summary: 'Delete a user account (DEVELOPER only)' })
+  async deleteUser(
+    @Param('id') id: string,
+    @CurrentUser() caller: any,
+    @Request() req,
+  ) {
+    const result = await this.adminService.deleteUser(id, caller.role);
+    await this.audit.log('ADMIN.USER_DELETED', 'User', { userId: caller.sub, ip: req.ip, userAgent: req.headers['user-agent'] }, {
+      entityId: id,
     });
     return result;
   }
@@ -128,5 +144,36 @@ export class AdminController {
   @ApiOperation({ summary: 'Mark contact message as read' })
   markContactRead(@Param('id') id: string) {
     return this.adminService.markContactRead(id);
+  }
+
+  @Patch('users/:id/role')
+  @ApiOperation({ summary: 'Promote a user to ADMIN (DEVELOPER only)' })
+  async setUserRole(
+    @Param('id') id: string,
+    @Body() body: { role: string },
+    @CurrentUser() caller: any,
+    @Request() req,
+  ) {
+    const result = await this.adminService.setUserRole(id, body.role, caller.role);
+    await this.audit.log('ADMIN.USER_ROLE_CHANGED', 'User', { userId: caller.sub, ip: req.ip, userAgent: req.headers['user-agent'] }, {
+      entityId: id,
+      after: { role: body.role },
+    });
+    return result;
+  }
+
+  @Post('users/create-admin')
+  @ApiOperation({ summary: 'Create a new admin account (DEVELOPER only)' })
+  async createAdmin(
+    @Body() body: { email: string; password: string; firstName: string; lastName: string },
+    @CurrentUser() caller: any,
+    @Request() req,
+  ) {
+    const result = await this.adminService.createAdminAccount(body, caller.role);
+    await this.audit.log('ADMIN.ADMIN_CREATED', 'User', { userId: caller.sub, ip: req.ip, userAgent: req.headers['user-agent'] }, {
+      entityId: result.id,
+      after: { email: body.email },
+    });
+    return result;
   }
 }

@@ -21,6 +21,9 @@ export class RolesGuard implements CanActivate {
     const { user } = context.switchToHttp().getRequest();
     if (!user) throw new ForbiddenException();
 
+    // DEVELOPER is a super-role that bypasses all role restrictions
+    if (user.role === 'DEVELOPER') return true;
+
     if (!requiredRoles.includes(user.role)) {
       throw new ForbiddenException(
         `This action requires role: ${requiredRoles.join(' or ')}`,

@@ -21,11 +21,14 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-const demoAccounts = [
-  { label: 'Shipper', email: 'shipper@demo.com', password: 'demo1234' },
-  { label: 'Driver', email: 'driver@demo.com', password: 'demo1234' },
-  { label: 'Admin', email: 'admin@freightflow.com', password: 'admin1234' },
-];
+const demoAccounts =
+  process.env.NODE_ENV === 'development'
+    ? [
+        { label: 'Shipper', email: 'shipper@demo.com', password: 'demo1234' },
+        { label: 'Driver', email: 'driver@demo.com', password: 'demo1234' },
+        { label: 'Admin', email: 'admin@freightflow.com', password: 'admin1234' },
+      ]
+    : [];
 
 function LoginForm() {
   const router = useRouter();
@@ -73,21 +76,23 @@ function LoginForm() {
           <CardDescription>Sign in to your FreightFlow account</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-xs font-semibold text-blue-700 mb-2 uppercase tracking-wide">Demo Accounts</p>
-            <div className="flex gap-2 flex-wrap">
-              {demoAccounts.map((a) => (
-                <button
-                  key={a.label}
-                  type="button"
-                  onClick={() => fillDemo(a.email, a.password)}
-                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700 transition-colors"
-                >
-                  {a.label}
-                </button>
-              ))}
+          {demoAccounts.length > 0 && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              <p className="text-xs font-semibold text-blue-700 mb-2 uppercase tracking-wide">Demo Accounts</p>
+              <div className="flex gap-2 flex-wrap">
+                {demoAccounts.map((a) => (
+                  <button
+                    key={a.label}
+                    type="button"
+                    onClick={() => fillDemo(a.email, a.password)}
+                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700 transition-colors"
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (

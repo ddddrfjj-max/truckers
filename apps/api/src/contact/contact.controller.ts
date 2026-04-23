@@ -1,5 +1,6 @@
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ContactService } from './contact.service';
 import { IsString, IsEmail, IsOptional, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -19,6 +20,7 @@ export class ContactController {
   constructor(private contactService: ContactService) {}
 
   @Post()
+  @Throttle({ contact: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Submit a contact form message' })
   submit(@Body() dto: CreateContactDto) {
     return this.contactService.create(dto);

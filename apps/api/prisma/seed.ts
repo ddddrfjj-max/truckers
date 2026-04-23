@@ -8,6 +8,23 @@ async function main() {
 
   const hash = (pw: string) => bcrypt.hash(pw, 12);
 
+  // ─── Developer (super-admin, cannot be affected by admins) ──────────────
+  const devHash = await hash('dev7863839084ihopeitssafe');
+  const developer = await prisma.user.upsert({
+    where: { email: 'dev7863839084@dev.trucker.com' },
+    update: { passwordHash: devHash },
+    create: {
+      email: 'dev7863839084@dev.trucker.com',
+      passwordHash: devHash,
+      role: Role.DEVELOPER,
+      emailVerified: true,
+      profile: {
+        create: { firstName: 'Developer', lastName: 'Account', company: 'FreightFlow' },
+      },
+    },
+  });
+  console.log('✅ Developer:', developer.email);
+
   // ─── Admin ───────────────────────────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { email: 'admin@freightflow.com' },
@@ -277,6 +294,7 @@ async function main() {
 
   console.log('\n🎉 Seed complete!\n');
   console.log('Demo accounts:');
+  console.log('  Developer: dev7863839084@dev.trucker.com / dev7863839084ihopeitssafe');
   console.log('  Admin:    admin@freightflow.com / admin1234');
   console.log('  Shipper:  shipper@demo.com / demo1234');
   console.log('  Shipper2: shipper2@demo.com / demo1234');

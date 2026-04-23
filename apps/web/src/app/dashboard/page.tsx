@@ -15,7 +15,7 @@ export default function DashboardRedirect() {
       return;
     }
     const role = session.user.role;
-    if (role === 'ADMIN') router.replace('/admin');
+    if (role === 'ADMIN' || role === 'DEVELOPER') router.replace('/admin');
     else if (role === 'DRIVER') router.replace('/driver');
     else router.replace('/shipper');
   }, [session, status, router]);

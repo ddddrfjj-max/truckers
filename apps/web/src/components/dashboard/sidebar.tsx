@@ -54,7 +54,8 @@ export function DashboardSidebar({ role }: Props) {
   const pathname = usePathname();
 
   const navItems =
-    role === 'ADMIN' ? adminNav : role === 'DRIVER' ? driverNav : shipperNav;
+    role === 'ADMIN' || role === 'DEVELOPER' ? adminNav :
+    role === 'DRIVER' ? driverNav : shipperNav;
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return pathname === href;
@@ -62,6 +63,7 @@ export function DashboardSidebar({ role }: Props) {
   };
 
   const roleColor =
+    role === 'DEVELOPER' ? 'bg-red-100 text-red-700' :
     role === 'ADMIN' ? 'bg-purple-100 text-purple-700' :
     role === 'DRIVER' ? 'bg-green-100 text-green-700' :
     'bg-blue-100 text-blue-700';
@@ -109,8 +111,9 @@ export function DashboardSidebar({ role }: Props) {
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors w-full"
+            aria-label="Sign out"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4" aria-hidden="true" />
             Sign Out
           </button>
         </div>
@@ -129,9 +132,9 @@ export function DashboardSidebar({ role }: Props) {
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
           className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-          title="Sign out"
+          aria-label="Sign out"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
 

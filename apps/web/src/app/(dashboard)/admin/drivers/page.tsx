@@ -190,7 +190,7 @@ export default function AdminDriversPage() {
                             <div className="flex items-center gap-2 shrink-0">
                               <StatusBadge status={doc.status} />
                               <a
-                                href={`http://localhost:3002${doc.url}`}
+                                href={doc.url}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-xs text-blue-600 hover:underline font-medium"

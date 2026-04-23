@@ -150,6 +150,12 @@ export const adminApi = {
     api.get('/admin/contact-messages', { params }).then((r) => r.data),
   markContactRead: (id: string) =>
     api.patch(`/admin/contact-messages/${id}/read`).then((r) => r.data),
+  setUserRole: (userId: string, role: string) =>
+    api.patch(`/admin/users/${userId}/role`, { role }).then((r) => r.data),
+  createAdmin: (data: { email: string; password: string; firstName: string; lastName: string }) =>
+    api.post('/admin/users/create-admin', data).then((r) => r.data),
+  deleteUser: (userId: string) =>
+    api.delete(`/admin/users/${userId}`).then((r) => r.data),
 };
 
 // ─── Users ─────────────────────────────────────────────────────────────────

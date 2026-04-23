@@ -127,9 +127,9 @@ export default function ShipmentDetailPage() {
             </h2>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {shipment.images.map((img: any) => (
-                <a key={img.id} href={`http://localhost:3002${img.url}`} target="_blank" rel="noreferrer">
+                <a key={img.id} href={img.url} target="_blank" rel="noreferrer">
                   <img
-                    src={`http://localhost:3002${img.url}`}
+                    src={img.url}
                     alt=""
                     className="w-full aspect-square object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity cursor-pointer"
                   />

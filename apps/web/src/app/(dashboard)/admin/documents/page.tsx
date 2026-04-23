@@ -10,7 +10,6 @@ import { formatDate } from '@/lib/utils';
 import { FileText, Loader2, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 const DOC_LABELS: Record<string, string> = {
   DRIVERS_LICENSE_FRONT: "Driver's License (Front)",
@@ -61,7 +60,7 @@ export default function AdminDocumentsPage() {
                   {/* Preview */}
                   {doc.mimeType?.startsWith('image/') ? (
                     <img
-                      src={`${BASE_URL}${doc.url}`}
+                      src={doc.url}
                       alt="document"
                       className="w-20 h-16 object-cover rounded-lg border"
                     />
@@ -87,7 +86,7 @@ export default function AdminDocumentsPage() {
 
                 <div className="flex items-center gap-2 ml-4">
                   <a
-                    href={`${BASE_URL}${doc.url}`}
+                    href={doc.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800"

@@ -7,11 +7,10 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { StatusBadge } from '@/components/dashboard/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatDate } from '@/lib/utils';
 import {
-  Upload, FileText, Loader2, CheckCircle, Clock, AlertCircle,
+  Upload, FileText, Loader2, Clock,
   Camera, CreditCard, Eye, Info, ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -76,7 +75,6 @@ export default function ShipperVerifyPage() {
   const [selectedType, setSelectedType] = useState('GOVERNMENT_ID');
   const [preview, setPreview] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [idInfo, setIdInfo] = useState({ fullName: '', idNumber: '', expiry: '', issuingCountry: 'US' });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: docs, isLoading } = useQuery({
@@ -232,37 +230,6 @@ export default function ShipperVerifyPage() {
                   <img src={preview} alt="Preview" className="w-full object-cover max-h-60" />
                 </div>
 
-                {/* ID data entry */}
-                {isIdDoc && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
-                    <p className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
-                      <Info className="w-3.5 h-3.5" /> Enter key info from your ID (for contracts)
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Full Name</Label>
-                        <Input placeholder="As on ID" className="h-8 text-xs" value={idInfo.fullName}
-                          onChange={(e) => setIdInfo((p) => ({ ...p, fullName: e.target.value }))} />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">ID / Passport Number</Label>
-                        <Input placeholder="Document number" className="h-8 text-xs" value={idInfo.idNumber}
-                          onChange={(e) => setIdInfo((p) => ({ ...p, idNumber: e.target.value }))} />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Expiry Date</Label>
-                        <Input type="date" className="h-8 text-xs" value={idInfo.expiry}
-                          onChange={(e) => setIdInfo((p) => ({ ...p, expiry: e.target.value }))} />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Issuing Country</Label>
-                        <Input placeholder="US" maxLength={3} className="h-8 text-xs" value={idInfo.issuingCountry}
-                          onChange={(e) => setIdInfo((p) => ({ ...p, issuingCountry: e.target.value.toUpperCase() }))} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 <div className="flex gap-2">
                   <Button className="flex-1 gap-2" onClick={handleConfirmUpload} disabled={uploadMutation.isPending}>
                     {uploadMutation.isPending
@@ -319,7 +286,7 @@ export default function ShipperVerifyPage() {
                     </div>
                     <div className="flex items-center gap-2 ml-3 shrink-0">
                       <StatusBadge status={doc.status} />
-                      <a href={`http://localhost:3002${doc.url}`} target="_blank" rel="noreferrer"
+                      <a href={doc.url} target="_blank" rel="noreferrer"
                         className="text-gray-400 hover:text-blue-500" title="View">
                         <Eye className="w-4 h-4" />
                       </a>

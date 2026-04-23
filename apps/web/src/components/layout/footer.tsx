@@ -38,8 +38,8 @@ export function Footer() {
             <h4 className="text-white font-semibold mb-4">Company</h4>
             <ul className="space-y-3 text-sm">
               <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+              <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
 

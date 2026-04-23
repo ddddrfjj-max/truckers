@@ -37,7 +37,7 @@ export class AuthService {
     });
     if (existing) throw new ConflictException('Email already registered');
 
-    if (dto.role === Role.ADMIN) {
+    if (dto.role === Role.ADMIN || dto.role === Role.DEVELOPER) {
       throw new BadRequestException('Cannot register as admin');
     }
 
@@ -61,21 +61,31 @@ export class AuthService {
       include: { profile: true },
     });
 
-    return this.generateTokens(user);
+    return this.generateAndStoreTokens(user);
   }
 
   async login(user: any) {
-    return this.generateTokens(user);
+    return this.generateAndStoreTokens(user);
   }
 
-  async refreshTokens(userId: string, refreshToken: string) {
+  async refreshTokens(userId: string, rawRefreshToken: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException();
-    // In production, store hashed refresh token and validate here
-    return this.generateTokens(user);
+    if (!user || !user.refreshTokenHash) throw new UnauthorizedException();
+
+    const tokenValid = await bcrypt.compare(rawRefreshToken, user.refreshTokenHash);
+    if (!tokenValid) throw new UnauthorizedException('Invalid refresh token');
+
+    return this.generateAndStoreTokens(user);
   }
 
-  private generateTokens(user: any) {
+  async revokeRefreshToken(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshTokenHash: null },
+    });
+  }
+
+  private async generateAndStoreTokens(user: any) {
     const payload = { sub: user.id, email: user.email, role: user.role };
 
     const accessToken = this.jwtService.sign(payload, {
@@ -86,6 +96,12 @@ export class AuthService {
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.config.get('JWT_REFRESH_SECRET'),
       expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
+    });
+
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { refreshTokenHash },
     });
 
     return {
@@ -109,7 +125,7 @@ export class AuthService {
       },
     });
     if (!user) throw new UnauthorizedException();
-    const { passwordHash, ...safe } = user;
+    const { passwordHash, refreshTokenHash, ...safe } = user;
     return safe;
   }
 }
