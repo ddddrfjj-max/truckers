@@ -61,7 +61,7 @@ const schema = z.object({
   deliveryDate:    z.string().optional(),
   budgetMin:       z.coerce.number().optional(),
   budgetMax:       z.coerce.number().optional(),
-  vehicleRequired: z.string().optional(),
+  vehicleRequired: z.string().optional().transform(v => v || undefined),
 });
 
 type FormData = z.infer<typeof schema>;
