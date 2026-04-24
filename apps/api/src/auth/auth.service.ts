@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
@@ -72,7 +73,12 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || !user.refreshTokenHash) throw new UnauthorizedException();
 
-    const tokenValid = await bcrypt.compare(rawRefreshToken, user.refreshTokenHash);
+    // SHA-256 prehash before bcrypt — bcrypt truncates inputs at 72 bytes, and
+    // JWTs for the same user share a common prefix well beyond 72 chars, which
+    // would cause bcrypt to treat different tokens as equal. Hashing to a 64-char
+    // hex string first guarantees every token produces a distinct bcrypt input.
+    const tokenDigest = createHash('sha256').update(rawRefreshToken).digest('hex');
+    const tokenValid = await bcrypt.compare(tokenDigest, user.refreshTokenHash);
     if (!tokenValid) throw new UnauthorizedException('Invalid refresh token');
 
     return this.generateAndStoreTokens(user);
@@ -98,7 +104,8 @@ export class AuthService {
       expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
     });
 
-    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+    const tokenDigest = createHash('sha256').update(refreshToken).digest('hex');
+    const refreshTokenHash = await bcrypt.hash(tokenDigest, 10);
     await this.prisma.user.update({
       where: { id: user.id },
       data: { refreshTokenHash },
