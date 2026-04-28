@@ -44,3 +44,17 @@
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 }
+
+/*
+ * Prevent iOS from zooming into the page when the user taps an input.
+ * iOS auto-zooms whenever a focused input/textarea/select has font-size < 16px.
+ * Setting it to 16px on mobile stops the zoom while keeping the visual size
+ * (everything else — line-height, padding — is controlled by Tailwind).
+ */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

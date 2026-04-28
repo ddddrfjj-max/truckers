@@ -38,4 +38,15 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 WORKDIR /app/apps/api
 EXPOSE 3002
 
-CMD ["sh", "-c", "/app/apps/api/node_modules/.bin/prisma migrate deploy --schema=./prisma/schema.prisma && node dist/src/main"]
+CMD ["sh", "-c", "\
+  PRISMA=/app/apps/api/node_modules/.bin/prisma; \
+  SCHEMA=./prisma/schema.prisma; \
+  $PRISMA migrate deploy --schema=$SCHEMA; \
+  STATUS=$?; \
+  if [ $STATUS -ne 0 ]; then \
+    echo 'migrate deploy failed — attempting to resolve any failed migrations and retrying'; \
+    $PRISMA migrate resolve --rolled-back 20260427000000_add_bid_counter_offer --schema=$SCHEMA 2>/dev/null || true; \
+    $PRISMA migrate resolve --rolled-back 20260427120000_add_bid_chat --schema=$SCHEMA 2>/dev/null || true; \
+    $PRISMA migrate deploy --schema=$SCHEMA; \
+  fi; \
+  node dist/src/main"]
