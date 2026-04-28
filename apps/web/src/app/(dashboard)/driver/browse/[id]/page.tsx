@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { shipmentsApi, bidsApi, usersApi, bookingsApi } from '@/lib/api';
 import { useSession } from 'next-auth/react';
 import { ChatBox } from '@/components/dashboard/chat-box';
+import { BidChatBox } from '@/components/dashboard/bid-chat-box';
 import Link from 'next/link';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { StatusBadge } from '@/components/dashboard/status-badge';
@@ -56,7 +57,7 @@ export default function ShipmentDetailPage() {
 
   const isVerified = driverProfile?.verificationStatus === 'APPROVED';
   const isPending = driverProfile?.verificationStatus === 'PENDING' || driverProfile?.verificationStatus === 'UNDER_REVIEW';
-  const existingBid = myBids?.find((b: any) => b.shipmentId === id && b.status === 'PENDING');
+  const existingBid = myBids?.find((b: any) => b.shipmentId === id && ['PENDING', 'COUNTERED'].includes(b.status));
 
   const bidMutation = useMutation({
     mutationFn: () => bidsApi.place({ shipmentId: id, amount: Number(bidAmount), note: bidNote }),
@@ -279,12 +280,26 @@ export default function ShipmentDetailPage() {
 
         {/* Bid form / status */}
         {existingBid ? (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
-            <div>
-              <p className="font-semibold text-green-800">You have an active bid of {formatCurrency(existingBid.amount)}</p>
-              <p className="text-sm text-green-700 mt-0.5">Go to My Bids to track or withdraw it.</p>
+          <div className="space-y-3">
+            <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-green-800">Active bid: {formatCurrency(existingBid.amount)}</p>
+                <p className="text-sm text-green-700 mt-0.5">Use the chat below to negotiate directly with the shipper.</p>
+              </div>
             </div>
+            {session?.user?.id && (
+              <BidChatBox
+                bidId={existingBid.id}
+                currentUserId={session.user.id}
+                currentUserRole="DRIVER"
+                onOfferAccepted={() => {
+                  queryClient.invalidateQueries({ queryKey: ['driver-bids'] });
+                  queryClient.invalidateQueries({ queryKey: ['driver-jobs'] });
+                  queryClient.invalidateQueries({ queryKey: ['shipment', id] });
+                }}
+              />
+            )}
           </div>
         ) : bidSubmitted ? (
           <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-start gap-3">

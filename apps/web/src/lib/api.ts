@@ -94,6 +94,15 @@ export const bidsApi = {
     api.patch(`/bids/${bidId}/accept-counter`).then((r) => r.data),
   rejectCounter: (bidId: string) =>
     api.patch(`/bids/${bidId}/reject-counter`).then((r) => r.data),
+  // bid-level chat
+  getChatMessages: (bidId: string) =>
+    api.get(`/bids/${bidId}/chat`).then((r) => r.data),
+  sendChatMessage: (bidId: string, content: string) =>
+    api.post(`/bids/${bidId}/chat`, { content }).then((r) => r.data),
+  sendOfferMessage: (bidId: string, offerAmount: number, note?: string) =>
+    api.post(`/bids/${bidId}/chat/offer`, { offerAmount, note }).then((r) => r.data),
+  respondToOffer: (bidId: string, msgId: string, action: 'accept' | 'reject') =>
+    api.patch(`/bids/${bidId}/chat/${msgId}/respond`, { action }).then((r) => r.data),
 };
 
 // ─── Bookings ──────────────────────────────────────────────────────────────

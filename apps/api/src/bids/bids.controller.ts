@@ -16,8 +16,21 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '@prisma/client';
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+class SendBidMessageDto {
+  @ApiProperty() @IsString() @MinLength(1) content: string;
+}
+
+class SendOfferMessageDto {
+  @ApiProperty({ example: 700 }) @IsNumber() @Min(1) offerAmount: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
+}
+
+class RespondOfferDto {
+  @ApiProperty({ enum: ['accept', 'reject'] }) @IsIn(['accept', 'reject']) action: 'accept' | 'reject';
+}
 
 class CounterBidDto {
   @ApiProperty({ example: 650 }) @IsNumber() @Min(1) counterAmount: number;
@@ -135,6 +148,64 @@ export class BidsController {
       entityId: bidId,
     });
     return result;
+  }
+
+  // ── Bid-level chat ───────────────────────────────────────────────────────
+
+  @Get(':id/chat')
+  @Roles(Role.SHIPPER, Role.DRIVER)
+  @ApiOperation({ summary: 'Get messages for a bid negotiation chat' })
+  getBidMessages(
+    @Param('id') bidId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.bidsService.getBidMessages(bidId, userId);
+  }
+
+  @Post(':id/chat')
+  @Roles(Role.SHIPPER, Role.DRIVER)
+  @ApiOperation({ summary: 'Send a text message in bid chat' })
+  sendBidMessage(
+    @Param('id') bidId: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: SendBidMessageDto,
+  ) {
+    return this.bidsService.sendBidMessage(bidId, userId, dto.content);
+  }
+
+  @Post(':id/chat/offer')
+  @Roles(Role.SHIPPER, Role.DRIVER)
+  @ApiOperation({ summary: 'Send a counter offer in bid chat' })
+  sendCounterOffer(
+    @Param('id') bidId: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: SendOfferMessageDto,
+  ) {
+    return this.bidsService.sendCounterOfferMessage(bidId, userId, dto.offerAmount, dto.note);
+  }
+
+  @Patch(':id/chat/:msgId/respond')
+  @Roles(Role.SHIPPER, Role.DRIVER)
+  @ApiOperation({ summary: 'Accept or reject a counter offer message' })
+  async respondToOffer(
+    @Param('id') _bidId: string,
+    @Param('msgId') msgId: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: RespondOfferDto,
+    @Request() req,
+  ) {
+    if (dto.action === 'accept') {
+      const result = await this.bidsService.acceptOfferMessage(msgId, userId);
+      await this.audit.log('BID.OFFER_ACCEPTED', 'Bid', { userId, ip: req.ip, userAgent: req.headers['user-agent'] }, {
+        entityId: _bidId,
+        after: { agreedAmount: result.booking.agreedAmount },
+      });
+      return result;
+    } else {
+      const result = await this.bidsService.rejectOfferMessage(msgId, userId);
+      await this.audit.log('BID.OFFER_REJECTED', 'Bid', { userId, ip: req.ip, userAgent: req.headers['user-agent'] }, { entityId: _bidId });
+      return result;
+    }
   }
 
   @Patch(':id/withdraw')

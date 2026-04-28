@@ -7,16 +7,14 @@ import Link from 'next/link';
 import { shipmentsApi, bidsApi, usersApi } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ChatBox } from '@/components/dashboard/chat-box';
+import { BidChatBox } from '@/components/dashboard/bid-chat-box';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { StatusBadge } from '@/components/dashboard/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDate, formatCurrency, formatWeight } from '@/lib/utils';
-import { MapPin, Package, Loader2, ArrowLeft, CheckCircle, Star, Truck, Clock, ImageIcon, Plus, X, ShieldCheck, FileText, User, MessageCircle, ArrowLeftRight, DollarSign } from 'lucide-react';
+import { MapPin, Package, Loader2, ArrowLeft, CheckCircle, Star, Truck, Clock, ImageIcon, Plus, X, ShieldCheck, FileText, User, MessageCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 export default function ShipmentDetailPage() {
@@ -26,9 +24,6 @@ export default function ShipmentDetailPage() {
   const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [viewingDriverId, setViewingDriverId] = useState<string | null>(null);
-  const [counteringBidId, setCounteringBidId] = useState<string | null>(null);
-  const [counterAmount, setCounterAmount] = useState('');
-  const [counterNote, setCounterNote] = useState('');
 
   const { data: shipment, isLoading } = useQuery({
     queryKey: ['shipment', id],
@@ -59,38 +54,6 @@ export default function ShipmentDetailPage() {
       toast.success('Bid accepted! Booking created.');
       queryClient.invalidateQueries({ queryKey: ['shipment', id] });
       queryClient.invalidateQueries({ queryKey: ['my-shipments'] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const counterMutation = useMutation({
-    mutationFn: ({ bidId, amount, note }: { bidId: string; amount: number; note?: string }) =>
-      bidsApi.counter(bidId, amount, note),
-    onSuccess: () => {
-      toast.success('Counter offer sent');
-      setCounteringBidId(null);
-      setCounterAmount('');
-      setCounterNote('');
-      queryClient.invalidateQueries({ queryKey: ['shipment', id] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const acceptCounterMutation = useMutation({
-    mutationFn: (bidId: string) => bidsApi.acceptCounter(bidId),
-    onSuccess: () => {
-      toast.success("Counter offer accepted! Booking created.");
-      queryClient.invalidateQueries({ queryKey: ['shipment', id] });
-      queryClient.invalidateQueries({ queryKey: ['my-shipments'] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const rejectCounterMutation = useMutation({
-    mutationFn: (bidId: string) => bidsApi.rejectCounter(bidId),
-    onSuccess: () => {
-      toast.success("Counter offer rejected — original bid stands");
-      queryClient.invalidateQueries({ queryKey: ['shipment', id] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -375,93 +338,33 @@ export default function ShipmentDetailPage() {
                           Est. delivery: {formatDate(bid.estimatedDeliveryDate)}
                         </p>
                       )}
-                      {/* Counter offer display — driver has countered back */}
-                      {bid.status === 'COUNTERED' && bid.counterBy === 'DRIVER' && (
-                        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                          <p className="text-xs font-semibold text-amber-700 flex items-center gap-1">
-                            <ArrowLeftRight className="w-3 h-3" /> Driver counter-offered
-                          </p>
-                          <p className="text-lg font-bold text-amber-900 mt-1">{formatCurrency(bid.counterAmount)}</p>
-                          {bid.counterNote && <p className="text-xs text-amber-800 italic mt-1">"{bid.counterNote}"</p>}
-                        </div>
-                      )}
-
-                      {/* Counter offer display — shipper already sent a counter */}
-                      {bid.status === 'COUNTERED' && bid.counterBy === 'SHIPPER' && (
-                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <p className="text-xs font-semibold text-blue-700 flex items-center gap-1">
-                            <ArrowLeftRight className="w-3 h-3" /> Your counter offer — awaiting driver response
-                          </p>
-                          <p className="text-lg font-bold text-blue-900 mt-1">{formatCurrency(bid.counterAmount)}</p>
-                          {bid.counterNote && <p className="text-xs text-blue-800 italic mt-1">"{bid.counterNote}"</p>}
-                        </div>
-                      )}
-
-                      {/* Action buttons */}
-                      {canAcceptBids && (bid.status === 'PENDING' || (bid.status === 'COUNTERED' && bid.counterBy === 'DRIVER')) && (
-                        <div className="mt-4 flex flex-wrap gap-2">
+                      {/* Accept at original bid amount */}
+                      {canAcceptBids && bid.status === 'PENDING' && (
+                        <div className="mt-3">
                           <Button
                             size="sm"
                             className="gap-2 bg-green-600 hover:bg-green-700"
-                            onClick={() => bid.status === 'COUNTERED' ? acceptCounterMutation.mutate(bid.id) : acceptMutation.mutate(bid.id)}
-                            disabled={acceptMutation.isPending || acceptCounterMutation.isPending}
+                            onClick={() => acceptMutation.mutate(bid.id)}
+                            disabled={acceptMutation.isPending}
                           >
                             <CheckCircle className="w-4 h-4" />
-                            Accept {bid.status === 'COUNTERED' ? `${formatCurrency(bid.counterAmount)} Counter` : 'Bid'}
+                            Accept {formatCurrency(bid.amount)}
                           </Button>
-                          {bid.status === 'COUNTERED' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
-                              onClick={() => rejectCounterMutation.mutate(bid.id)}
-                              disabled={rejectCounterMutation.isPending}
-                            >
-                              Decline Counter
-                            </Button>
-                          )}
-                          {bid.status === 'PENDING' && counteringBidId !== bid.id && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-2"
-                              onClick={() => { setCounteringBidId(bid.id); setCounterAmount(''); setCounterNote(''); }}
-                            >
-                              <ArrowLeftRight className="w-3.5 h-3.5" /> Counter Offer
-                            </Button>
-                          )}
                         </div>
                       )}
 
-                      {/* Inline counter-offer form */}
-                      {counteringBidId === bid.id && (
-                        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
-                          <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                            <DollarSign className="w-4 h-4" /> Send Counter Offer
-                          </p>
-                          <div>
-                            <Label className="text-xs">Your Counter Amount (USD)</Label>
-                            <div className="relative mt-1">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                              <Input type="number" min="1" className="pl-7" value={counterAmount} onChange={(e) => setCounterAmount(e.target.value)} />
-                            </div>
-                          </div>
-                          <div>
-                            <Label className="text-xs">Note (optional)</Label>
-                            <Textarea className="mt-1 text-sm" rows={2} placeholder="Explain your offer..." value={counterNote} onChange={(e) => setCounterNote(e.target.value)} />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="gap-1"
-                              disabled={!counterAmount || counterMutation.isPending}
-                              onClick={() => counterMutation.mutate({ bidId: bid.id, amount: Number(counterAmount), note: counterNote || undefined })}
-                            >
-                              {counterMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                              Send Counter
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => setCounteringBidId(null)}>Cancel</Button>
-                          </div>
+                      {/* Negotiation chat */}
+                      {(bid.status === 'PENDING' || bid.status === 'COUNTERED') && session?.user?.id && (
+                        <div className="mt-3">
+                          <BidChatBox
+                            bidId={bid.id}
+                            currentUserId={session.user.id}
+                            currentUserRole="SHIPPER"
+                            onOfferAccepted={() => {
+                              queryClient.invalidateQueries({ queryKey: ['shipment', id] });
+                              queryClient.invalidateQueries({ queryKey: ['my-shipments'] });
+                            }}
+                          />
                         </div>
                       )}
                     </div>

@@ -244,9 +244,10 @@ model Bid {
   withdrawnAt DateTime?
   respondedAt DateTime?
 
-  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  driver   User     @relation(fields: [driverId], references: [id])
-  booking  Booking?
+  shipment  Shipment      @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  driver    User          @relation(fields: [driverId], references: [id])
+  booking   Booking?
+  messages  ChatMessage[]
 
   @@unique([shipmentId, driverId])
   @@map("bids")
@@ -288,15 +289,20 @@ model Booking {
 }
 
 model ChatMessage {
-  id        String   @id @default(cuid())
-  bookingId String
-  senderId  String
-  content   String
-  readAt    DateTime?
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  bookingId   String?
+  bidId       String?
+  senderId    String
+  content     String
+  messageType String    @default("text")
+  offerAmount Float?
+  offerStatus String?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
 
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  sender  User    @relation("SentMessages", fields: [senderId], references: [id])
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bid     Bid?     @relation(fields: [bidId],     references: [id], onDelete: Cascade)
+  sender  User     @relation("SentMessages", fields: [senderId], references: [id])
 
   @@map("chat_messages")
 }
