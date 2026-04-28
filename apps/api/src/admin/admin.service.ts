@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserStatus, DocumentStatus } from '@prisma/client';
+import { UserStatus, DocumentStatus, ShipmentStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { SHIPPER_WITH_PROFILE, DRIVER_WITH_PROFILE } from '../common/prisma-selects';
 
@@ -108,6 +108,18 @@ export class AdminService {
       },
     });
     return result;
+  }
+
+  async updateShipmentStatus(shipmentId: string, status: ShipmentStatus) {
+    return this.prisma.shipment.update({
+      where: { id: shipmentId },
+      data: { status },
+      include: {
+        shipper: SHIPPER_WITH_PROFILE,
+        booking: true,
+        _count: { select: { bids: true } },
+      },
+    });
   }
 
   async getAllShipments(query: any) {

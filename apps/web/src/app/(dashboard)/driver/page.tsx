@@ -1,22 +1,30 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { bookingsApi, bidsApi, shipmentsApi } from '@/lib/api';
+import { bookingsApi, bidsApi, shipmentsApi, usersApi } from '@/lib/api';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { StatusBadge } from '@/components/dashboard/status-badge';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { Button } from '@/components/ui/button';
+import { OnboardingModal } from '@/components/onboarding-modal';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Truck, Search, ClipboardList, CheckCircle, Clock, Loader2, ArrowRight, TrendingUp } from 'lucide-react';
 
 export default function DriverDashboard() {
+  const { data: session } = useSession();
   const { data: stats } = useQuery({ queryKey: ['driver-stats'], queryFn: bookingsApi.driverStats });
   const { data: recentJobs } = useQuery({ queryKey: ['driver-jobs'], queryFn: bookingsApi.driverJobs });
   const { data: recentBids } = useQuery({ queryKey: ['driver-bids'], queryFn: bidsApi.myBids });
   const { data: loads } = useQuery({ queryKey: ['browse-loads'], queryFn: () => shipmentsApi.browse({ limit: 5 }) });
+  const { data: me } = useQuery({ queryKey: ['me'], queryFn: usersApi.me, enabled: !!session });
+
+  const profileIncomplete = !!me && (!me.profile?.city || !me.profile?.avatarUrl);
 
   return (
+    <>
+      <OnboardingModal role="DRIVER" profileIncomplete={profileIncomplete} />
     <div>
       <PageHeader
         title="Driver Dashboard"
@@ -95,5 +103,6 @@ export default function DriverDashboard() {
         </div>
       </div>
     </div>
+    </>
   );
 }

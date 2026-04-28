@@ -126,7 +126,7 @@ export default function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-slate-500 text-white hover:bg-white/10 text-base px-8"
+                  className="border-slate-500 text-black hover:bg-white/10 text-base px-8"
                 >
                   <Truck className="w-4 h-4 mr-2" />
                   Find Loads
@@ -304,15 +304,6 @@ export default function HomePage() {
             <Link href="/register">
               <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-50 gap-2 text-base px-8">
                 Create Free Account <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white text-white hover:bg-white/10 text-base px-8"
-              >
-                Talk to Sales
               </Button>
             </Link>
           </div>

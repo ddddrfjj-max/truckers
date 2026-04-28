@@ -3,7 +3,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { shipmentsApi, bookingsApi } from '@/lib/api';
+import { shipmentsApi, bookingsApi, usersApi } from '@/lib/api';
+import { OnboardingModal } from '@/components/onboarding-modal';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { StatusBadge } from '@/components/dashboard/status-badge';
 import { PageHeader } from '@/components/dashboard/page-header';
@@ -37,9 +38,17 @@ export default function ShipperDashboard() {
     queryFn: bookingsApi.shipperBookings,
   });
 
-  const name = session?.user?.email?.split('@')[0] || 'there';
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: usersApi.me,
+    enabled: !!session,
+  });
+
+  const profileIncomplete = !!me && (!me.profile?.city || !me.profile?.avatarUrl);
 
   return (
+    <>
+      <OnboardingModal role="SHIPPER" profileIncomplete={profileIncomplete} />
     <div>
       <PageHeader
         title={`Welcome back!`}
@@ -134,5 +143,6 @@ export default function ShipperDashboard() {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -192,10 +192,10 @@ export default function ShipmentDetailPage() {
                 <span className="text-gray-500">Weight</span>
                 <span className="font-medium">{formatWeight(shipment.weightKg)}</span>
               </div>
-              {shipment.budgetMin && (
+              {shipment.budgetMax && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Budget</span>
-                  <span className="font-medium">{formatCurrency(shipment.budgetMin)} – {formatCurrency(shipment.budgetMax ?? 0)}</span>
+                  <span className="text-gray-500">Price Suggestion</span>
+                  <span className="font-medium">{formatCurrency(shipment.budgetMax)}</span>
                 </div>
               )}
               {shipment.vehicleRequired && (

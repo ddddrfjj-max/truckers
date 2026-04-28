@@ -17,7 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { DocumentStatus, Role, UserStatus } from '@prisma/client';
+import { DocumentStatus, Role, ShipmentStatus, UserStatus } from '@prisma/client';
 
 @ApiTags('admin')
 @ApiBearerAuth('access-token')
@@ -76,6 +76,22 @@ export class AdminController {
   @ApiOperation({ summary: 'List all shipments' })
   getShipments(@Query() query: any) {
     return this.adminService.getAllShipments(query);
+  }
+
+  @Patch('shipments/:id/status')
+  @ApiOperation({ summary: 'Update shipment status (Admin/Dev)' })
+  async updateShipmentStatus(
+    @Param('id') id: string,
+    @Body() body: { status: ShipmentStatus },
+    @CurrentUser() caller: any,
+    @Request() req,
+  ) {
+    const result = await this.adminService.updateShipmentStatus(id, body.status);
+    await this.audit.log('ADMIN.SHIPMENT_STATUS_UPDATED', 'Shipment', { userId: caller.sub, ip: req.ip, userAgent: req.headers['user-agent'] }, {
+      entityId: id,
+      after: { status: body.status },
+    });
+    return result;
   }
 
   @Get('bookings')

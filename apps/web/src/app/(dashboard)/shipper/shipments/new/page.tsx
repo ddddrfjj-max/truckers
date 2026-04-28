@@ -18,6 +18,8 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
+type WeightUnit = 'kg' | 'lbs';
+
 // ─── Cargo type visual options ────────────────────────────────────────────────
 
 const CARGO_OPTIONS = [
@@ -45,23 +47,22 @@ const VEHICLE_OPTIONS = [
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const schema = z.object({
-  title:           z.string().min(5, 'Title must be at least 5 characters'),
-  description:     z.string().optional(),
-  weightKg:        z.coerce.number().min(0.1, 'Enter a valid weight'),
-  specialHandling: z.string().optional(),
-  pickupAddress:   z.string().min(3, 'Required'),
-  pickupCity:      z.string().min(2, 'Required'),
-  pickupState:     z.string().min(2, 'Required'),
-  pickupZip:       z.string().optional(),
-  pickupDate:      z.string().min(1, 'Required'),
-  deliveryAddress: z.string().min(3, 'Required'),
-  deliveryCity:    z.string().min(2, 'Required'),
-  deliveryState:   z.string().min(2, 'Required'),
-  deliveryZip:     z.string().optional(),
-  deliveryDate:    z.string().optional(),
-  budgetMin:       z.coerce.number().optional(),
-  budgetMax:       z.coerce.number().optional(),
-  vehicleRequired: z.string().optional().transform(v => v || undefined),
+  title:            z.string().min(5, 'Title must be at least 5 characters'),
+  description:      z.string().optional(),
+  weightValue:      z.coerce.number().min(0.1, 'Enter a valid weight'),
+  specialHandling:  z.string().optional(),
+  pickupAddress:    z.string().min(3, 'Required'),
+  pickupCity:       z.string().min(2, 'Required'),
+  pickupState:      z.string().min(2, 'Required'),
+  pickupZip:        z.string().optional(),
+  pickupDate:       z.string().min(1, 'Required'),
+  deliveryAddress:  z.string().min(3, 'Required'),
+  deliveryCity:     z.string().min(2, 'Required'),
+  deliveryState:    z.string().min(2, 'Required'),
+  deliveryZip:      z.string().optional(),
+  deliveryDate:     z.string().optional(),
+  budgetSuggestion: z.coerce.number().optional(),
+  vehicleRequired:  z.string().optional().transform(v => v || undefined),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -83,6 +84,7 @@ export default function NewShipmentPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [cargoType, setCargoType] = useState('GENERAL');
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg');
   const [images, setImages] = useState<ImagePreview[]>([]);
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
@@ -108,7 +110,18 @@ export default function NewShipmentPage() {
   };
 
   const createMutation = useMutation({
-    mutationFn: (data: FormData) => shipmentsApi.create({ ...data, cargoType }),
+    mutationFn: (data: FormData) => {
+      const weightKg = weightUnit === 'lbs'
+        ? parseFloat((data.weightValue / 2.20462).toFixed(3))
+        : data.weightValue;
+      const { weightValue, budgetSuggestion, ...rest } = data;
+      return shipmentsApi.create({
+        ...rest,
+        cargoType,
+        weightKg,
+        ...(budgetSuggestion ? { budgetMax: budgetSuggestion } : {}),
+      });
+    },
     onSuccess: async (shipment) => {
       queryClient.invalidateQueries({ queryKey: ['my-shipments'] });
       queryClient.invalidateQueries({ queryKey: ['shipper-stats'] });
@@ -209,9 +222,23 @@ export default function NewShipmentPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="weightKg">Weight (kg) *</Label>
-                <Input id="weightKg" type="number" step="0.1" min="0.1" placeholder="500" {...register('weightKg')} />
-                {errors.weightKg && <p className="text-xs text-red-500">{errors.weightKg.message}</p>}
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="weightValue">Weight *</Label>
+                  <div className="flex rounded-md border border-input overflow-hidden text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setWeightUnit('kg')}
+                      className={cn('px-2.5 py-1 transition-colors', weightUnit === 'kg' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50')}
+                    >kg</button>
+                    <button
+                      type="button"
+                      onClick={() => setWeightUnit('lbs')}
+                      className={cn('px-2.5 py-1 transition-colors', weightUnit === 'lbs' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50')}
+                    >lbs</button>
+                  </div>
+                </div>
+                <Input id="weightValue" type="number" step="0.1" min="0.1" placeholder={weightUnit === 'kg' ? '500' : '1100'} {...register('weightValue')} />
+                {errors.weightValue && <p className="text-xs text-red-500">{errors.weightValue.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vehicleRequired">Vehicle Required</Label>
@@ -386,25 +413,19 @@ export default function NewShipmentPage() {
 
         {/* ── Budget ── */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Budget (USD)</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Price Suggestion (USD)</CardTitle>
+            <p className="text-sm text-gray-500 mt-0.5">Optional — gives drivers a reference point for their bids</p>
+          </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Minimum</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                  <Input type="number" min="0" placeholder="500" className="pl-7" {...register('budgetMin')} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Maximum</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                  <Input type="number" min="0" placeholder="1000" className="pl-7" {...register('budgetMax')} />
-                </div>
+            <div className="space-y-2">
+              <Label>Suggested Price</Label>
+              <div className="relative max-w-48">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                <Input type="number" min="0" placeholder="750" className="pl-7" {...register('budgetSuggestion')} />
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-2">Setting a budget range helps drivers calibrate their bids</p>
+            <p className="text-xs text-gray-400 mt-2">Drivers will make their own offers — this is not a fixed price</p>
           </CardContent>
         </Card>
 
