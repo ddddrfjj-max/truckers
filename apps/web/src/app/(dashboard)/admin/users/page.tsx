@@ -178,7 +178,8 @@ export default function AdminUsersPage() {
         <EmptyState icon={Users} title="No users found" description="No users match your search" />
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">User</th>
@@ -271,6 +272,7 @@ export default function AdminUsersPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

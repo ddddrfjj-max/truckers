@@ -23,7 +23,7 @@ export function ChatBox({ bookingId, currentUserId }: Props) {
     queryKey: ['chat', bookingId],
     queryFn: () => bookingsApi.getMessages(bookingId),
     enabled: open,
-    refetchInterval: open ? 5000 : false, // poll every 5s while open
+    refetchInterval: open ? 8000 : false,
   });
 
   const sendMutation = useMutation({
@@ -74,7 +74,7 @@ export function ChatBox({ bookingId, currentUserId }: Props) {
       {open && (
         <div className="border-t border-gray-100">
           {/* Message list */}
-          <div className="h-64 overflow-y-auto p-4 space-y-3 bg-gray-50">
+          <div className="h-52 sm:h-64 overflow-y-auto p-4 space-y-3 bg-gray-50">
             {isLoading ? (
               <div className="flex justify-center pt-10">
                 <Loader2 className="w-5 h-5 animate-spin text-blue-400" />

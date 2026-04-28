@@ -40,7 +40,8 @@ export default function AdminShipmentsPage() {
         <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[900px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Shipment</th>
@@ -110,6 +111,7 @@ export default function AdminShipmentsPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

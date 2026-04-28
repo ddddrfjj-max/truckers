@@ -34,7 +34,7 @@ export function BidChatBox({ bidId, currentUserId, currentUserRole, onOfferAccep
     queryKey: qKey,
     queryFn:  () => bidsApi.getChatMessages(bidId),
     enabled:  open,
-    refetchInterval: open ? 4000 : false,
+    refetchInterval: open ? 8000 : false,
   });
 
   const sendMsg = useMutation({
@@ -120,7 +120,7 @@ export function BidChatBox({ bidId, currentUserId, currentUserRole, onOfferAccep
       {open && (
         <div className="border-t border-gray-100">
           {/* Message list */}
-          <div className="h-72 overflow-y-auto p-4 space-y-3 bg-gray-50">
+          <div className="h-52 sm:h-72 overflow-y-auto p-4 space-y-3 bg-gray-50">
             {isLoading ? (
               <div className="flex justify-center pt-12"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
             ) : messages.length === 0 ? (

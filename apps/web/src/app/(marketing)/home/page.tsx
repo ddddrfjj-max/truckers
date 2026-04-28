@@ -99,25 +99,25 @@ export default function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-28 md:py-40">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-40">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-4 py-1.5 mb-6 text-sm text-blue-300">
-              <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+            <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 rounded-full px-3 py-1.5 mb-5 text-xs sm:text-sm text-blue-300">
+              <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse shrink-0" />
               Now live — 2,400+ verified carriers
             </div>
-            <h1 className="text-5xl md:text-7xl font-extrabold leading-tight mb-6">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold leading-tight mb-5">
               Ship Smarter.
               <br />
               <span className="text-blue-400">Earn More.</span>
             </h1>
-            <p className="text-xl text-slate-300 mb-10 max-w-2xl leading-relaxed">
+            <p className="text-base sm:text-xl text-slate-300 mb-8 max-w-2xl leading-relaxed">
               FreightFlow connects shippers with trusted drivers through a
               competitive bidding marketplace. Post a load in minutes. Get bids
               from verified carriers. Move freight at the best price.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3">
               <Link href="/register?role=SHIPPER">
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white gap-2 text-base px-8">
+                <Button size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white gap-2 text-base px-8">
                   Post a Shipment
                   <ArrowRight className="w-4 h-4" />
                 </Button>
@@ -126,7 +126,7 @@ export default function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-slate-500 text-black hover:bg-white/10 text-base px-8"
+                  className="w-full sm:w-auto border-slate-500 text-black hover:bg-white/10 text-base px-8"
                 >
                   <Truck className="w-4 h-4 mr-2" />
                   Find Loads
@@ -138,9 +138,9 @@ export default function HomePage() {
       </section>
 
       {/* Stats */}
-      <section className="py-16 bg-blue-600">
+      <section className="py-10 md:py-16 bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {stats.map(({ label, value, icon: Icon }) => (
               <div key={label} className="text-center text-white">
                 <Icon className="w-6 h-6 mx-auto mb-2 text-blue-200" />
