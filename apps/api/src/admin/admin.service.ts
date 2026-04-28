@@ -283,10 +283,58 @@ export class AdminService {
 
   async deleteUser(userId: string, callerRole: string) {
     if (callerRole !== 'DEVELOPER') throw new ForbiddenException('Only developers can delete accounts');
-    const target = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    const target = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, email: true },
+    });
     if (!target) throw new ForbiddenException('User not found');
     if (target.role === 'DEVELOPER') throw new ForbiddenException('Developer accounts cannot be deleted');
-    return this.prisma.user.delete({ where: { id: userId }, select: { id: true, email: true, role: true } });
+
+    // Must delete related records in dependency order — Shipment/Bid/Booking/ChatMessage
+    // don't have cascade deletes on the User FK, so Postgres would reject a bare user.delete.
+    await this.prisma.$transaction(async (tx) => {
+      // Nullify nullable audit-log references
+      await tx.auditLog.updateMany({ where: { userId }, data: { userId: null } });
+
+      // ── Shipper-side cleanup ──────────────────────────────────────────────
+      const shipmentIds = (
+        await tx.shipment.findMany({ where: { shipperId: userId }, select: { id: true } })
+      ).map((s) => s.id);
+
+      if (shipmentIds.length) {
+        const bookingIds = (
+          await tx.booking.findMany({
+            where: { shipmentId: { in: shipmentIds } },
+            select: { id: true },
+          })
+        ).map((b) => b.id);
+        if (bookingIds.length) {
+          await tx.chatMessage.deleteMany({ where: { bookingId: { in: bookingIds } } });
+          await tx.booking.deleteMany({ where: { id: { in: bookingIds } } });
+        }
+        // ShipmentImage and Bid cascade from Shipment
+        await tx.shipment.deleteMany({ where: { id: { in: shipmentIds } } });
+      }
+
+      // ── Driver-side cleanup ───────────────────────────────────────────────
+      const driverBookingIds = (
+        await tx.booking.findMany({ where: { driverId: userId }, select: { id: true } })
+      ).map((b) => b.id);
+      if (driverBookingIds.length) {
+        await tx.chatMessage.deleteMany({ where: { bookingId: { in: driverBookingIds } } });
+        await tx.booking.deleteMany({ where: { id: { in: driverBookingIds } } });
+      }
+      // Bids on other shippers' shipments (booking already removed above)
+      await tx.bid.deleteMany({ where: { driverId: userId } });
+
+      // Any remaining chat messages the user sent (defensive)
+      await tx.chatMessage.deleteMany({ where: { senderId: userId } });
+
+      // Delete user — Profile, DriverProfile, Document, Notification cascade
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    return { id: userId, email: target.email, deleted: true };
   }
 
   async setUserRole(userId: string, role: string, callerRole: string) {
