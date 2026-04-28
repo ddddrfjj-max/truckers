@@ -143,12 +143,130 @@ export class BidsService {
     const bid = await this.prisma.bid.findUnique({ where: { id: bidId } });
     if (!bid) throw new NotFoundException('Bid not found');
     if (bid.driverId !== driverId) throw new ForbiddenException();
-    if (bid.status !== BidStatus.PENDING)
+    if (bid.status !== BidStatus.PENDING && bid.status !== BidStatus.COUNTERED)
       throw new BadRequestException('Bid cannot be withdrawn');
 
     return this.prisma.bid.update({
       where: { id: bidId },
       data: { status: BidStatus.WITHDRAWN, withdrawnAt: new Date() },
+    });
+  }
+
+  async counterBid(
+    bidId: string,
+    requesterId: string,
+    requesterRole: string,
+    counterAmount: number,
+    counterNote?: string,
+  ) {
+    const bid = await this.prisma.bid.findUnique({
+      where: { id: bidId },
+      include: { shipment: true },
+    });
+    if (!bid) throw new NotFoundException('Bid not found');
+
+    if (requesterRole === 'SHIPPER') {
+      if (bid.shipment.shipperId !== requesterId) throw new ForbiddenException('Not your shipment');
+      if (bid.status !== BidStatus.PENDING && bid.status !== BidStatus.COUNTERED)
+        throw new BadRequestException('Bid is not in a negotiable state');
+      if (bid.counterBy === 'SHIPPER')
+        throw new BadRequestException('You already sent a counter — wait for the driver to respond');
+    } else if (requesterRole === 'DRIVER') {
+      if (bid.driverId !== requesterId) throw new ForbiddenException('Not your bid');
+      if (bid.status !== BidStatus.COUNTERED || bid.counterBy !== 'SHIPPER')
+        throw new BadRequestException('No pending counter offer from the shipper to respond to');
+    } else {
+      throw new ForbiddenException();
+    }
+
+    return this.prisma.bid.update({
+      where: { id: bidId },
+      data: {
+        status: BidStatus.COUNTERED,
+        counterAmount,
+        counterNote,
+        counterBy: requesterRole,
+      },
+      include: { driver: DRIVER_WITH_PROFILE, shipment: true },
+    });
+  }
+
+  async acceptCounter(bidId: string, requesterId: string, requesterRole: string) {
+    const bid = await this.prisma.bid.findUnique({
+      where: { id: bidId },
+      include: { shipment: true, driver: { select: { id: true, driverProfile: true } } },
+    });
+    if (!bid) throw new NotFoundException('Bid not found');
+    if (bid.status !== BidStatus.COUNTERED) throw new BadRequestException('No counter offer to accept');
+
+    // The party that did NOT send the counter is the one who can accept it
+    if (requesterRole === 'DRIVER') {
+      if (bid.driverId !== requesterId) throw new ForbiddenException();
+      if (bid.counterBy !== 'SHIPPER') throw new BadRequestException('The counter was not sent by the shipper');
+    } else if (requesterRole === 'SHIPPER') {
+      if (bid.shipment.shipperId !== requesterId) throw new ForbiddenException('Not your shipment');
+      if (bid.counterBy !== 'DRIVER') throw new BadRequestException('The counter was not sent by the driver');
+    } else {
+      throw new ForbiddenException();
+    }
+
+    if (!bid.driver.driverProfile) throw new BadRequestException('Driver has no driver profile');
+    const agreedAmount = bid.counterAmount!;
+
+    const [updatedBid, , booking] = await this.prisma.$transaction([
+      this.prisma.bid.update({
+        where: { id: bidId },
+        data: { status: BidStatus.ACCEPTED, amount: agreedAmount, respondedAt: new Date() },
+      }),
+      this.prisma.bid.updateMany({
+        where: { shipmentId: bid.shipmentId, id: { not: bidId }, status: BidStatus.PENDING },
+        data: { status: BidStatus.REJECTED, respondedAt: new Date() },
+      }),
+      this.prisma.booking.create({
+        data: {
+          shipmentId: bid.shipmentId,
+          bidId: bid.id,
+          driverId: bid.driverId,
+          driverProfileId: bid.driver.driverProfile.id,
+          agreedAmount,
+        },
+      }),
+      this.prisma.shipment.update({
+        where: { id: bid.shipmentId },
+        data: { status: 'BOOKED' },
+      }),
+    ]);
+
+    return { bid: updatedBid, booking };
+  }
+
+  async rejectCounter(bidId: string, requesterId: string, requesterRole: string) {
+    const bid = await this.prisma.bid.findUnique({
+      where: { id: bidId },
+      include: { shipment: true },
+    });
+    if (!bid) throw new NotFoundException('Bid not found');
+    if (bid.status !== BidStatus.COUNTERED) throw new BadRequestException('No counter offer to reject');
+
+    if (requesterRole === 'DRIVER') {
+      if (bid.driverId !== requesterId) throw new ForbiddenException();
+      if (bid.counterBy !== 'SHIPPER') throw new BadRequestException('Counter was not sent by the shipper');
+    } else if (requesterRole === 'SHIPPER') {
+      if (bid.shipment.shipperId !== requesterId) throw new ForbiddenException();
+      if (bid.counterBy !== 'DRIVER') throw new BadRequestException('Counter was not sent by the driver');
+    } else {
+      throw new ForbiddenException();
+    }
+
+    // Clear counter and return to PENDING so the original bid amount still stands
+    return this.prisma.bid.update({
+      where: { id: bidId },
+      data: {
+        status: BidStatus.PENDING,
+        counterAmount: null,
+        counterNote: null,
+        counterBy: null,
+      },
     });
   }
 }

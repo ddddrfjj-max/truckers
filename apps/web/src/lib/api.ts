@@ -88,6 +88,12 @@ export const bidsApi = {
     api.patch(`/bids/${bidId}/accept`).then((r) => r.data),
   withdraw: (bidId: string) =>
     api.patch(`/bids/${bidId}/withdraw`).then((r) => r.data),
+  counter: (bidId: string, counterAmount: number, counterNote?: string) =>
+    api.patch(`/bids/${bidId}/counter`, { counterAmount, counterNote }).then((r) => r.data),
+  acceptCounter: (bidId: string) =>
+    api.patch(`/bids/${bidId}/accept-counter`).then((r) => r.data),
+  rejectCounter: (bidId: string) =>
+    api.patch(`/bids/${bidId}/reject-counter`).then((r) => r.data),
 };
 
 // ─── Bookings ──────────────────────────────────────────────────────────────

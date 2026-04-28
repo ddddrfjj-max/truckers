@@ -19,6 +19,11 @@ import { Role } from '@prisma/client';
 import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+class CounterBidDto {
+  @ApiProperty({ example: 650 }) @IsNumber() @Min(1) counterAmount: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() counterNote?: string;
+}
+
 class PlaceBidDto {
   @ApiProperty() @IsString() shipmentId: string;
   @ApiProperty({ example: 750 }) @IsNumber() @Min(1) amount: number;
@@ -78,6 +83,56 @@ export class BidsController {
     await this.audit.log('BID.ACCEPTED', 'Bid', { userId: shipperId, ip: req.ip, userAgent: req.headers['user-agent'] }, {
       entityId: bidId,
       after: { bookingId: result.booking.id, agreedAmount: result.booking.agreedAmount },
+    });
+    return result;
+  }
+
+  @Patch(':id/counter')
+  @Roles(Role.SHIPPER, Role.DRIVER)
+  @ApiOperation({ summary: 'Send a counter offer on a bid' })
+  async counterBid(
+    @Param('id') bidId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: string,
+    @Body() dto: CounterBidDto,
+    @Request() req,
+  ) {
+    const result = await this.bidsService.counterBid(bidId, userId, role, dto.counterAmount, dto.counterNote);
+    await this.audit.log('BID.COUNTERED', 'Bid', { userId, ip: req.ip, userAgent: req.headers['user-agent'] }, {
+      entityId: bidId,
+      after: { counterAmount: dto.counterAmount, counterBy: role },
+    });
+    return result;
+  }
+
+  @Patch(':id/accept-counter')
+  @Roles(Role.SHIPPER, Role.DRIVER)
+  @ApiOperation({ summary: 'Accept a counter offer' })
+  async acceptCounter(
+    @Param('id') bidId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: string,
+    @Request() req,
+  ) {
+    const result = await this.bidsService.acceptCounter(bidId, userId, role);
+    await this.audit.log('BID.COUNTER_ACCEPTED', 'Bid', { userId, ip: req.ip, userAgent: req.headers['user-agent'] }, {
+      entityId: bidId,
+    });
+    return result;
+  }
+
+  @Patch(':id/reject-counter')
+  @Roles(Role.SHIPPER, Role.DRIVER)
+  @ApiOperation({ summary: 'Reject a counter offer' })
+  async rejectCounter(
+    @Param('id') bidId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: string,
+    @Request() req,
+  ) {
+    const result = await this.bidsService.rejectCounter(bidId, userId, role);
+    await this.audit.log('BID.COUNTER_REJECTED', 'Bid', { userId, ip: req.ip, userAgent: req.headers['user-agent'] }, {
+      entityId: bidId,
     });
     return result;
   }

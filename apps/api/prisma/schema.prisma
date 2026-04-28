@@ -59,6 +59,7 @@ enum ShipmentStatus {
 
 enum BidStatus {
   PENDING
+  COUNTERED
   ACCEPTED
   REJECTED
   WITHDRAWN
@@ -235,6 +236,9 @@ model Bid {
   status      BidStatus @default(PENDING)
   note        String?
   estimatedDeliveryDate DateTime?
+  counterAmount Float?
+  counterNote   String?
+  counterBy     String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   withdrawnAt DateTime?
